@@ -33,6 +33,6 @@ Gui:
 ![Desktop screenshot](screenshots/desktop.png)-->
 
 <p float="left">
-  <img src="screenshots/desktop.png" width="300"/>
+  <img src="screenshots/android.png" width="300"/>
   <img src="screenshots/desktop.png" width="300"/>
 </p>
