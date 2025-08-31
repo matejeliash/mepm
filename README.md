@@ -29,5 +29,10 @@ Gui:
 
 
 
-![Android screenshot](screenshots/android.png)
-![Desktop screenshot](screenshots/desktop.png)
+<!--![Android screenshot](screenshots/android.png)
+![Desktop screenshot](screenshots/desktop.png)-->
+
+<p float="left">
+  <img src="screenshots/desktop.png" width="300"/>
+  <img src="screenshots/desktop.png" width="300"/>
+</p>
