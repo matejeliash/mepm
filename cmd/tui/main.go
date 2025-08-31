@@ -1,10 +1,6 @@
 package main
 
-import (
-	"fmt"
-
-	"github.com/matejeliash/mepm/internal/passmanager"
-)
+import "github.com/matejeliash/mepm/internal/tui"
 
 func Resolve(err error) {
 	if err != nil {
@@ -14,17 +10,45 @@ func Resolve(err error) {
 
 func main() {
 
-	dbPath := "./test.db"
+	tm := tui.NewTuiManager()
 
-	pm, err := passmanager.NewPassManager(dbPath)
-	Resolve(err)
+	for true {
+		tm.PrintAllRecords()
+		tm.SelectAction()
 
-	err = pm.InitPassManagerDB("heslo")
-	Resolve(err)
+	}
 
-	mt, err := pm.DB.GetMasterTable()
-	Resolve(err)
+	// dbPath := "./test.db"
 
-	fmt.Printf("%+v", mt)
+	// pm, err := passmanager.NewPassManager(dbPath)
+	// Resolve(err)
+
+	// var password string
+
+	// fmt.Println("enter password:")
+	// fmt.Scan(&password)
+
+	// if !pm.DB.HasMasterTable() {
+	// 	err = pm.InitPassManagerDB(password)
+	// 	Resolve(err)
+	// }
+
+	// err = pm.FetchMasterTable()
+	// Resolve(err)
+
+	// for !pm.IsPasswordCorrect(password) {
+	// 	fmt.Println("provided password is incorrect, enter again:")
+	// 	fmt.Scan(&password)
+	// }
+
+	// pm.Password = password
+
+	// err = pm.InsertRecord(password, "username", "info")
+	// records, err := pm.GetRecords()
+	// Resolve(err)
+	// fmt.Println(records)
+	// decryptedPassword, err := pm.DecryptPassword(records[0])
+	// Resolve(err)
+	// fmt.Println(decryptedPassword)
 
 }

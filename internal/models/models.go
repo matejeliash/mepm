@@ -11,8 +11,21 @@ type KeyGenParams struct {
 
 type MasterTable struct {
 	gorm.Model
-	KeySalt      string
-	PasswordSalt string
-	PasswordHash string
+	KeySalt      []byte
+	PasswordSalt []byte
+	PasswordHash []byte
 	KeyGenParams
+}
+
+type Record struct {
+	gorm.Model
+	EncryptedPassword []byte
+	Info              string
+	Username          string
+}
+
+type Note struct {
+	gorm.Model
+	Title         string
+	EncryptedText []byte
 }

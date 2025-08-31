@@ -29,7 +29,20 @@ func (d *Database) CreateMasterTable(tableStruct *models.MasterTable) error {
 		return err
 	}
 	err = d.DB.Create(tableStruct).Error
+	if err != nil {
+		return err
+	}
+	err = d.DB.AutoMigrate(&models.Record{})
+	if err != nil {
+		return err
+	}
+	err = d.DB.AutoMigrate(&models.Note{})
+	if err != nil {
+		return err
+	}
+
 	return err
+
 }
 
 func (d *Database) GetMasterTable() (*models.MasterTable, error) {
@@ -37,4 +50,50 @@ func (d *Database) GetMasterTable() (*models.MasterTable, error) {
 	var table models.MasterTable
 	err := d.DB.First(&table).Error
 	return &table, err
+}
+
+func (d *Database) GetRecordsTable() ([]models.Record, error) {
+
+	var records []models.Record
+	err := d.DB.Find(&records).Error
+	return records, err
+}
+
+func (d *Database) GetNotesTable() ([]models.Note, error) {
+
+	var notes []models.Note
+	err := d.DB.Find(&notes).Error
+	return notes, err
+}
+
+func (d *Database) InsertRecord(record *models.Record) error {
+	err := d.DB.Create(record).Error
+	return err
+
+}
+
+func (d *Database) InsertNote(note *models.Note) error {
+	err := d.DB.Create(note).Error
+	return err
+
+}
+
+func (d *Database) RemoveRecord(record *models.Record) error {
+
+	err := d.DB.Delete(&models.Record{}, record.ID).Error
+	return err
+
+}
+
+func (d *Database) RemoveNote(note *models.Note) error {
+
+	err := d.DB.Delete(&models.Note{}, note.ID).Error
+	return err
+
+}
+
+func (d *Database) UpdateRecord(record *models.Record) error {
+	err := d.DB.Model(&models.Record{}).Where("id = ?", record.ID).Updates(record).Error
+	return err
+
 }
