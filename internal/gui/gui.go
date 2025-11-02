@@ -57,8 +57,20 @@ type GuiManager struct {
 	Window      fyne.Window
 	ScreenStack []fyne.CanvasObject
 	passmanager.PassManager
-	FilterPasswordStr string
+	FilterPasswordStr     string
+	NotesScreenContent    *fyne.Container
+	OtherScreenContent    *fyne.Container
+	PasswordScreenContent *fyne.Container
 }
+
+type RefreshType int
+
+const (
+	REFRESH_NONE RefreshType = iota
+	REFRESH_NOTES
+	REFRESH_PASSWORDS
+	REFRESH_ALL
+)
 
 func NewGuiManager() (*GuiManager, error) {
 
@@ -81,19 +93,19 @@ func NewGuiManager() (*GuiManager, error) {
 
 }
 
-func (gm *GuiManager) GoBack() {
-	if len(gm.ScreenStack) > 1 {
-		gm.ScreenStack = gm.ScreenStack[:len(gm.ScreenStack)-1]
-		gm.Window.SetContent(gm.ScreenStack[len(gm.ScreenStack)-1])
+// func (gm *GuiManager) GoBack() {
+// 	if len(gm.ScreenStack) > 1 {
+// 		gm.ScreenStack = gm.ScreenStack[:len(gm.ScreenStack)-1]
+// 		gm.Window.SetContent(gm.ScreenStack[len(gm.ScreenStack)-1])
 
-		prev := gm.ScreenStack[len(gm.ScreenStack)-1]
-		gm.Window.SetContent(prev)
+// 		prev := gm.ScreenStack[len(gm.ScreenStack)-1]
+// 		gm.Window.SetContent(prev)
 
-	} else {
-		gm.Window.Close()
-	}
+// 	} else {
+// 		gm.Window.Close()
+// 	}
 
-}
+// }
 
 func (gm *GuiManager) SetWindowContent(name string, content fyne.CanvasObject) {
 	gm.Window.SetContent(content)
@@ -101,10 +113,6 @@ func (gm *GuiManager) SetWindowContent(name string, content fyne.CanvasObject) {
 }
 
 func (gm *GuiManager) ShowFirstScreen() {
-
-	// gm.Window.SetCloseIntercept(func() {
-	// 	gm.GoBack()
-	// })
 
 	if gm.DB.HasMasterTable() {
 		gm.ShowLoginScreen()
@@ -146,7 +154,7 @@ func (gm *GuiManager) ShowInitScreen() {
 
 				gm.PassManager.Password = password1
 
-				gm.ShowMainScreen("passwords")
+				gm.ShowMainScreen("passwords", REFRESH_ALL)
 
 			}
 		} else {
@@ -191,7 +199,7 @@ func (gm *GuiManager) ShowLoginScreen() {
 
 			// Close login window and open main app window
 			gm.PassManager.Password = password
-			gm.ShowMainScreen("passwords")
+			gm.ShowMainScreen("passwords", REFRESH_ALL)
 		} else {
 			//dialog.ShowError(fmt.Errorf("Invalid credential"), gm.Window)
 			errorLabel.SetText("incorrect password")
@@ -211,15 +219,28 @@ func (gm *GuiManager) ShowLoginScreen() {
 
 }
 
-func (gm *GuiManager) ShowMainScreen(activeTab string) {
+func (gm *GuiManager) RefreshContent(refresh RefreshType) {
+	if refresh == REFRESH_ALL {
+		gm.NotesScreenContent = gm.CreateNoteScreenContent()
+		gm.OtherScreenContent = gm.CreateOtherScreenContent()
+		gm.PasswordScreenContent = gm.CreatePasswordScreenContent()
 
-	notesContent := gm.CreateNoteScreenContent()
-	otherContent := gm.CreateOtherScreenContent()
-	passwordContent := gm.CreateScreenContent()
+	} else if refresh == REFRESH_PASSWORDS {
+		gm.PasswordScreenContent = gm.CreatePasswordScreenContent()
 
-	passwordsTab := container.NewTabItem("Passwords", passwordContent)
-	notesTab := container.NewTabItem("Notes", notesContent)
-	othersTab := container.NewTabItem("Other", otherContent)
+	} else if refresh == REFRESH_NOTES {
+		gm.NotesScreenContent = gm.CreateNoteScreenContent()
+	}
+
+}
+
+func (gm *GuiManager) ShowMainScreen(activeTab string, refresh RefreshType) {
+
+	gm.RefreshContent(refresh)
+
+	passwordsTab := container.NewTabItem("Passwords", gm.PasswordScreenContent)
+	notesTab := container.NewTabItem("Notes", gm.NotesScreenContent)
+	othersTab := container.NewTabItem("Other", gm.OtherScreenContent)
 	// Tabs
 	tabs := container.NewAppTabs(
 		passwordsTab,
@@ -227,6 +248,7 @@ func (gm *GuiManager) ShowMainScreen(activeTab string) {
 		othersTab,
 	)
 
+	// put bar position based on platform
 	if activeTab == "passwords" {
 		tabs.SelectTab(passwordsTab)
 	} else if activeTab == "notes" {
@@ -240,7 +262,6 @@ func (gm *GuiManager) ShowMainScreen(activeTab string) {
 		tabs.SetTabLocation(container.TabLocationBottom)
 
 	} else {
-
 		tabs.SetTabLocation(container.TabLocationTop)
 	}
 
@@ -249,20 +270,23 @@ func (gm *GuiManager) ShowMainScreen(activeTab string) {
 }
 
 func (gm *GuiManager) SimpleRecordFilter(records []models.Record) []models.Record {
-	filterStr := gm.FilterPasswordStr
-	if filterStr == "" {
+	betterFilterStr := strings.ToLower(strings.Replace(gm.FilterPasswordStr, " ", "", -1))
+	if betterFilterStr == "" {
 		return records
 	}
 	var filteredRecords []models.Record
+
 	for _, r := range records {
-		if strings.Contains(r.Info, filterStr) || strings.Contains(r.Username, filterStr) {
+		betterInfo := strings.ToLower(strings.Replace(r.Info, " ", "", -1))
+		betterUsername := strings.ToLower(strings.Replace(r.Info, " ", "", -1))
+		if strings.Contains(betterUsername, betterFilterStr) || strings.Contains(betterInfo, betterFilterStr) {
 			filteredRecords = append(filteredRecords, r)
 		}
 	}
 	return filteredRecords
 }
 
-func (gm *GuiManager) CreateScreenContent() *fyne.Container {
+func (gm *GuiManager) CreatePasswordScreenContent() *fyne.Container {
 
 	largeText := canvas.NewText("mepm", color.White)
 	largeText.TextSize = 36 // Set custom font size
@@ -273,12 +297,12 @@ func (gm *GuiManager) CreateScreenContent() *fyne.Container {
 	searchEntry.SetPlaceHolder("filter")
 	filterButton := widget.NewButtonWithIcon("", theme.SearchIcon(), func() {
 		gm.FilterPasswordStr = searchEntry.Text
-		gm.ShowMainScreen("passwords")
+		gm.ShowMainScreen("passwords", REFRESH_PASSWORDS)
 
 	})
 
 	insertButton := widget.NewButtonWithIcon("insert", theme.ContentAddIcon(), func() {
-		gm.ShowInsertScreen()
+		gm.ShowPasswordInsertScreen()
 
 	})
 
@@ -296,25 +320,12 @@ func (gm *GuiManager) CreateScreenContent() *fyne.Container {
 	for _, item := range filteredItems {
 		itemLabel := widget.NewLabel(item.Info)
 
-		//usernameLabel := widget.NewLabel(item.Username)
+		// adding username to screen
 		usernameLabel := canvas.NewText(item.Username, color.White)
 		usernameLabel.TextSize = 20 // Set custom font size
 		usernameLabel.Alignment = fyne.TextAlignCenter
 
-		// adding of button for copying password to clipboard
-		getPasswordButton := widget.NewButtonWithIcon("", theme.ContentCopyIcon(), func(item models.Record) func() {
-			return func() {
-				passwordStr, err := gm.DecryptPassword(item)
-
-				if err != nil {
-					dialog.ShowError(err, gm.Window)
-
-				} else {
-					fyne.Clipboard.SetContent(gm.App.Clipboard(), passwordStr)
-
-				}
-			}
-		}(item))
+		// adding button to copy username
 		getUsernameButton := widget.NewButtonWithIcon("", theme.AccountIcon(), func(models.Record) func() {
 			return func() {
 				fyne.Clipboard.SetContent(gm.App.Clipboard(), item.Username)
@@ -322,12 +333,27 @@ func (gm *GuiManager) CreateScreenContent() *fyne.Container {
 			}
 		}(item))
 
-		editButton := widget.NewButtonWithIcon("", theme.DocumentCreateIcon(), func(models.Record) func() {
+		// adding button to copy password
+		getPasswordButton := widget.NewButtonWithIcon("", theme.ContentCopyIcon(), func(item models.Record) func() {
 			return func() {
-				gm.ShowEditScreen(item)
+				passwordStr, err := gm.DecryptPassword(item)
+				if err != nil {
+					dialog.ShowError(err, gm.Window)
+				} else {
+					fyne.Clipboard.SetContent(gm.App.Clipboard(), passwordStr)
+
+				}
 			}
 		}(item))
 
+		// adding button to edit password entry
+		editButton := widget.NewButtonWithIcon("", theme.DocumentCreateIcon(), func(models.Record) func() {
+			return func() {
+				gm.ShowPasswordEditScreen(item)
+			}
+		}(item))
+
+		//adding button to delete password entry
 		deleteButton := widget.NewButtonWithIcon("", theme.DeleteIcon(), func() {
 			dialog.NewConfirm("Deletion", "Do you want to delete?", func(answer bool) {
 				if answer {
@@ -336,16 +362,18 @@ func (gm *GuiManager) CreateScreenContent() *fyne.Container {
 						dialog.ShowError(err, gm.Window)
 					}
 				}
-				gm.ShowMainScreen("passwords")
+				gm.ShowMainScreen("passwords", REFRESH_PASSWORDS)
 			}, gm.Window).Show() // <-- .Show() is critical!
 		})
-		itemRow := container.NewVBox(
+
+		// group of all texts and buttons related to password entry
+		entryGroup := container.NewVBox(
 			container.NewHBox(itemLabel),
 			container.NewHBox(usernameLabel),
 			container.NewHBox(getPasswordButton, getUsernameButton, editButton, deleteButton),
 		)
 
-		itemContainer.Add(itemRow)
+		itemContainer.Add(entryGroup)
 	}
 
 	top := container.NewVBox(
@@ -375,7 +403,7 @@ func (gm *GuiManager) CreateNoteScreenContent() *fyne.Container {
 
 	searchEntry.SetPlaceHolder("filter")
 	filterButton := widget.NewButtonWithIcon("", theme.SearchIcon(), func() {
-		gm.ShowMainScreen("notes")
+		gm.ShowMainScreen("notes", REFRESH_NOTES)
 
 	})
 
@@ -411,7 +439,7 @@ func (gm *GuiManager) CreateNoteScreenContent() *fyne.Container {
 						dialog.ShowError(err, gm.Window)
 					}
 				}
-				gm.ShowMainScreen("notes")
+				gm.ShowMainScreen("notes", REFRESH_NOTES)
 			}, gm.Window).Show() // <-- .Show() is critical!
 		})
 		itemRow := container.NewVBox(
@@ -439,12 +467,12 @@ func (gm *GuiManager) CreateNoteScreenContent() *fyne.Container {
 
 }
 
-func (gm *GuiManager) ShowInsertScreen() {
+func (gm *GuiManager) ShowPasswordInsertScreen() {
 
 	infoLabel := widget.NewLabel("New password record")
 
 	backButton := widget.NewButtonWithIcon("back", theme.NavigateBackIcon(), func() {
-		gm.ShowMainScreen("passwords")
+		gm.ShowMainScreen("passwords", REFRESH_NONE)
 
 	})
 
@@ -472,7 +500,7 @@ func (gm *GuiManager) ShowInsertScreen() {
 			// Close login window and open main app window
 			gm.PassManager.InsertRecord(password1, username, info)
 
-			gm.ShowMainScreen("passwords")
+			gm.ShowMainScreen("passwords", REFRESH_PASSWORDS)
 		} else {
 			dialog.ShowError(fmt.Errorf("Invalid credentials"), gm.Window)
 		}
@@ -494,12 +522,12 @@ func (gm *GuiManager) ShowInsertScreen() {
 
 }
 
-func (gm *GuiManager) ShowEditScreen(record models.Record) {
+func (gm *GuiManager) ShowPasswordEditScreen(record models.Record) {
 
 	infoLabel := widget.NewLabel("Edit password record")
 
 	backButton := widget.NewButtonWithIcon("back", theme.NavigateBackIcon(), func() {
-		gm.ShowMainScreen("passwords")
+		gm.ShowMainScreen("passwords", REFRESH_NONE)
 
 	})
 
@@ -535,7 +563,7 @@ func (gm *GuiManager) ShowEditScreen(record models.Record) {
 			// Close login window and open main app window
 			gm.PassManager.UpdateRecord(int(record.ID), info, username, password1)
 
-			gm.ShowMainScreen("passwords")
+			gm.ShowMainScreen("passwords", REFRESH_PASSWORDS)
 		} else {
 			dialog.ShowError(fmt.Errorf("Invalid values"), gm.Window)
 		}
@@ -562,7 +590,7 @@ func (gm *GuiManager) ShowNoteInsertScreen() {
 	infoLabel := widget.NewLabel("New note")
 
 	backButton := widget.NewButtonWithIcon("back", theme.NavigateBackIcon(), func() {
-		gm.ShowMainScreen("notes")
+		gm.ShowMainScreen("notes", REFRESH_NONE)
 
 	})
 
@@ -584,7 +612,7 @@ func (gm *GuiManager) ShowNoteInsertScreen() {
 			// Close login window and open main app window
 			gm.PassManager.InsertNote(title, text)
 
-			gm.ShowMainScreen("notes")
+			gm.ShowMainScreen("notes", REFRESH_NOTES)
 		} else {
 			dialog.ShowError(fmt.Errorf("Invalid credentials"), gm.Window)
 		}
@@ -609,37 +637,12 @@ func (gm *GuiManager) CreateOtherScreenContent() *fyne.Container {
 	largeText := canvas.NewText("mepm", color.White)
 	largeText.TextSize = 36 // Set custom font size
 	largeText.Alignment = fyne.TextAlignCenter
-	infoLabel := widget.NewLabel(`This app is just demo app. I created this app so i could learn fyne GUI framework.`)
-
-	// removeDbButton := widget.NewButtonWithIcon("", theme.DeleteIcon(), func() {
-	// 	dialog.NewConfirm("Deletion", "Do you want to delete?", func(answer bool) {
-	// 		if answer {
-	// 			err := RemoveDb(gm.App)
-	// 			if err != nil {
-	// 				dialog.ShowError(fmt.Errorf("Could not delete db."), gm.Window)
-	// 				return
-
-	// 			}
-	// 		}
-
-	// 		dbPath := CreateDbPath(gm.App)
-	// 		pm, err := passmanager.NewPassManager(dbPath)
-	// 		gm.PassManager = *pm
-	// 		if err != nil {
-	// 			dialog.ShowError(fmt.Errorf("Could not create db file"), gm.Window)
-	// 		}
-	// 		gm.ShowFirstScreen()
-	// 	}, gm.Window).Show() // <-- .Show() is critical!
-	// })
+	infoLabel := widget.NewLabel(`Work in progress !!!`)
 
 	top := container.NewVBox(
 		largeText,
 		infoLabel,
 	)
-
-	// Scrollable content
-
-	// Use Border layout: top widgets at the top, scroll fills remaining space
 
 	return top
 

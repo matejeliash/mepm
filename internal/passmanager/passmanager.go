@@ -136,7 +136,6 @@ func (pm *PassManager) DecryptPassword(record models.Record) (string, error) {
 	fmt.Println(pm.Password)
 
 	key := secutils.GenerateKey([]byte(pm.Password), pm.MasterTable.KeySalt, (*secutils.KeyGenParams)(&pm.MasterTable.KeyGenParams))
-	fmt.Println(key)
 
 	decryptedBytes, err := secutils.DecryptAES(record.EncryptedPassword, key)
 
@@ -150,7 +149,6 @@ func (pm *PassManager) DecryptNote(note models.Note) (string, error) {
 	fmt.Println(pm.Password)
 
 	key := secutils.GenerateKey([]byte(pm.Password), pm.MasterTable.KeySalt, (*secutils.KeyGenParams)(&pm.MasterTable.KeyGenParams))
-	fmt.Println(key)
 
 	decryptedBytes, err := secutils.DecryptAES(note.EncryptedText, key)
 

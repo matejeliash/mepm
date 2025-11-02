@@ -8,6 +8,6 @@ cd cmd/mepm-gui
 
  fyne package --os android/arm64  --app-id com.melias.mepm --name "mepm"
 
- #  adb install -r mepm.apk
+ adb install -r mepm.apk
 
- # adb shell monkey -p com.melias.mepm 1
+  adb shell monkey -p com.melias.mepm 1
