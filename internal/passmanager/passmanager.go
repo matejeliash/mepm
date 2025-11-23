@@ -12,6 +12,7 @@ type PassManager struct {
 	Password    string
 	MasterTable models.MasterTable
 	DB          *db.Database
+	DbPath      string
 }
 
 func NewPassManager(dbPath string) (*PassManager, error) {

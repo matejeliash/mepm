@@ -3,6 +3,7 @@ package gui
 import (
 	"fmt"
 	"image/color"
+	"io"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -34,22 +35,9 @@ func CreateDbPath(app fyne.App) string {
 	}
 }
 
-func RemoveDb(app fyne.App) error {
-	if runtime.GOOS == "android" {
-
-		rootUri := app.Storage().RootURI()
-		dbPath := filepath.Join(rootUri.Path(), "test.db")
-		err := os.Remove(dbPath)
-		return err
-	} else if runtime.GOOS == "linux" {
-		//home := os.Getenv("HOME")
-		//return filepath.Join(home, ".test.db")
-		err := os.Remove("./data.db")
-		return err
-	} else {
-		err := os.Remove("./data.db")
-		return err
-	}
+func (gm *GuiManager) RemoveDb() error {
+	err := os.Remove(gm.PassManager.DbPath)
+	return err
 }
 
 type GuiManager struct {
@@ -85,10 +73,11 @@ func NewGuiManager() (*GuiManager, error) {
 
 	dbPath := CreateDbPath(gm.App)
 	pm, err := passmanager.NewPassManager(dbPath)
-	gm.PassManager = *pm
 	if err != nil {
 		return nil, err
 	}
+	pm.DbPath = dbPath
+	gm.PassManager = *pm
 	return gm, nil
 
 }
@@ -162,12 +151,50 @@ func (gm *GuiManager) ShowInitScreen() {
 		}
 	})
 
+	importBtn := widget.NewButton("import", func() {
+		dialog.NewFileOpen(func(reader fyne.URIReadCloser, err error) {
+			if err != nil || reader == nil {
+				return
+			}
+			defer reader.Close()
+
+			//srcName := filepath.Base(reader.URI().Path())
+			dstPath := gm.PassManager.DbPath
+			// Open your internal file
+
+			dst, err := os.Create(dstPath)
+			if err != nil {
+				dialog.ShowError(err, gm.Window)
+				return
+			}
+			defer dst.Close()
+
+			// Copy data to chosen destination
+			_, err = io.Copy(dst, reader)
+			if err != nil {
+				dialog.ShowError(err, gm.Window)
+			} else {
+				dialog.ShowInformation("Success", "File exported!", gm.Window)
+			}
+
+			dbPath := CreateDbPath(gm.App)
+			pm, _ := passmanager.NewPassManager(dbPath)
+			pm.DbPath = dbPath
+			gm.PassManager = *pm
+
+			gm.ShowFirstScreen()
+
+		}, gm.Window).Show()
+
+	})
+
 	// Layout for login screen
 	loginForm := container.NewVBox(
 		infoText,
 		passwordRepeatEntry,
 		passwordEntry,
 		confirmButton,
+		importBtn,
 	)
 
 	content := container.NewVBox(loginForm, errorLabel)
@@ -639,9 +666,136 @@ func (gm *GuiManager) CreateOtherScreenContent() *fyne.Container {
 	largeText.Alignment = fyne.TextAlignCenter
 	infoLabel := widget.NewLabel(`Work in progress !!!`)
 
+	resetAppBtn := widget.NewButton("reset app", func() {
+		gm.RemoveDb()
+		dbPath := CreateDbPath(gm.App)
+		pm, _ := passmanager.NewPassManager(dbPath)
+		pm.DbPath = dbPath
+		gm.PassManager = *pm
+
+		gm.ShowInitScreen()
+
+	})
+
+	// var startServerBtn *widget.Button
+	// var stopServerBtn *widget.Button
+	// killServer := make(chan bool, 1)
+	// stopServerBtn = widget.NewButton("stop sharing", func() {
+	// 	killServer <- true
+	// 	fyne.Do(func() {
+	// 		stopServerBtn.Hide()
+	// 		startServerBtn.Show()
+	// 	})
+
+	// })
+
+	// startServerBtn = widget.NewButton("share db", func() {
+
+	// 	fyne.Do(func() {
+	// 		startServerBtn.Hide()
+	// 		stopServerBtn.Show()
+	// 	})
+
+	// 	go func(killServer chan bool) {
+
+	// 		appDir := filepath.Dir(gm.PassManager.DbPath)
+	// 		fileServer := http.FileServer(http.Dir(appDir))
+
+	// 		srv := &http.Server{
+	// 			Addr:    ":8080",
+	// 			Handler: fileServer, // use this handler instead of global mux
+	// 		}
+
+	// 		go func() {
+	// 			if err := srv.ListenAndServe(); err != nil {
+	// 				fmt.Println(err)
+	// 			}
+
+	// 		}()
+
+	// 		<-killServer
+	// 		srv.Close()
+
+	// 	}(killServer)
+
+	// })
+	// stopServerBtn.Hide()
+
+	//download file from url
+	//
+
+	exportBtn := widget.NewButton("export", func() {
+		dialog.NewFileSave(func(writer fyne.URIWriteCloser, err error) {
+			if err != nil || writer == nil {
+				return
+			}
+			defer writer.Close()
+
+			// Open your internal file
+			internalFilePath := gm.PassManager.DbPath
+			src, err := os.Open(internalFilePath)
+			if err != nil {
+				dialog.ShowError(err, gm.Window)
+				return
+			}
+			defer src.Close()
+
+			// Copy data to chosen destination
+			_, err = io.Copy(writer, src)
+			if err != nil {
+				dialog.ShowError(err, gm.Window)
+			} else {
+				dialog.ShowInformation("Success", "File exported!", gm.Window)
+			}
+		}, gm.Window).Show()
+
+	})
+
+	importBtn := widget.NewButton("import", func() {
+		dialog.NewFileOpen(func(reader fyne.URIReadCloser, err error) {
+			if err != nil || reader == nil {
+				return
+			}
+			defer reader.Close()
+
+			//srcName := filepath.Base(reader.URI().Path())
+			dstPath := gm.PassManager.DbPath
+			// Open your internal file
+
+			dst, err := os.Create(dstPath)
+			if err != nil {
+				dialog.ShowError(err, gm.Window)
+				return
+			}
+			defer dst.Close()
+
+			// Copy data to chosen destination
+			_, err = io.Copy(dst, reader)
+			if err != nil {
+				dialog.ShowError(err, gm.Window)
+			} else {
+				dialog.ShowInformation("Success", "File exported!", gm.Window)
+			}
+
+			dbPath := CreateDbPath(gm.App)
+			pm, _ := passmanager.NewPassManager(dbPath)
+			pm.DbPath = dbPath
+			gm.PassManager = *pm
+
+			gm.ShowFirstScreen()
+
+		}, gm.Window).Show()
+
+	})
+
 	top := container.NewVBox(
 		largeText,
 		infoLabel,
+		resetAppBtn,
+		// startServerBtn,
+		// stopServerBtn,
+		exportBtn,
+		importBtn,
 	)
 
 	return top

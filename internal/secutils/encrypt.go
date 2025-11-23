@@ -5,7 +5,8 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"errors"
-	"fmt"
+
+	"github.com/matejeliash/mepm/internal/other"
 )
 
 var (
@@ -25,20 +26,20 @@ func EncryptAES(plainBytes, key []byte) ([]byte, error) {
 	block, err := aes.NewCipher(key)
 
 	if err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrEncryptFail, err)
+		return nil, other.WrapErr("EncryptAES", err)
 	}
 
 	gcm, err := cipher.NewGCM(block)
 
 	if err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrEncryptFail, err)
+		return nil, other.WrapErr("EncryptAES", err)
 	}
 
 	nonce := make([]byte, gcm.NonceSize())
 	_, err = rand.Read(nonce)
 
 	if err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrEncryptFail, err)
+		return nil, other.WrapErr("EncryptAES", err)
 	}
 
 	encryptedBytes := gcm.Seal(nonce, nonce, plainBytes, nil)
@@ -57,13 +58,13 @@ func DecryptAES(encryptedBytes, key []byte) ([]byte, error) {
 	block, err := aes.NewCipher(key)
 
 	if err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrDecryptFail, err)
+		return nil, other.WrapErr("DecryptAES", err)
 	}
 
 	gcm, err := cipher.NewGCM(block)
 
 	if err != nil {
-		return nil, ErrDecryptFail
+		return nil, other.WrapErr("DecryptAES", err)
 	}
 	nonce := encryptedBytes[:gcm.NonceSize()]
 	ciphertext := encryptedBytes[gcm.NonceSize():]
@@ -71,7 +72,7 @@ func DecryptAES(encryptedBytes, key []byte) ([]byte, error) {
 	plainBytes, err := gcm.Open(nil, nonce, ciphertext, nil)
 
 	if err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrDecryptFail, err)
+		return nil, other.WrapErr("DecryptAES", err)
 	}
 
 	return plainBytes, nil
