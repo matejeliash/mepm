@@ -677,53 +677,6 @@ func (gm *GuiManager) CreateOtherScreenContent() *fyne.Container {
 
 	})
 
-	// var startServerBtn *widget.Button
-	// var stopServerBtn *widget.Button
-	// killServer := make(chan bool, 1)
-	// stopServerBtn = widget.NewButton("stop sharing", func() {
-	// 	killServer <- true
-	// 	fyne.Do(func() {
-	// 		stopServerBtn.Hide()
-	// 		startServerBtn.Show()
-	// 	})
-
-	// })
-
-	// startServerBtn = widget.NewButton("share db", func() {
-
-	// 	fyne.Do(func() {
-	// 		startServerBtn.Hide()
-	// 		stopServerBtn.Show()
-	// 	})
-
-	// 	go func(killServer chan bool) {
-
-	// 		appDir := filepath.Dir(gm.PassManager.DbPath)
-	// 		fileServer := http.FileServer(http.Dir(appDir))
-
-	// 		srv := &http.Server{
-	// 			Addr:    ":8080",
-	// 			Handler: fileServer, // use this handler instead of global mux
-	// 		}
-
-	// 		go func() {
-	// 			if err := srv.ListenAndServe(); err != nil {
-	// 				fmt.Println(err)
-	// 			}
-
-	// 		}()
-
-	// 		<-killServer
-	// 		srv.Close()
-
-	// 	}(killServer)
-
-	// })
-	// stopServerBtn.Hide()
-
-	//download file from url
-	//
-
 	exportBtn := widget.NewButton("export", func() {
 		dialog.NewFileSave(func(writer fyne.URIWriteCloser, err error) {
 			if err != nil || writer == nil {
@@ -792,8 +745,6 @@ func (gm *GuiManager) CreateOtherScreenContent() *fyne.Container {
 		largeText,
 		infoLabel,
 		resetAppBtn,
-		// startServerBtn,
-		// stopServerBtn,
 		exportBtn,
 		importBtn,
 	)
